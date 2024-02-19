@@ -14,7 +14,7 @@ struct Memory {
     size_t size;
 };
 
-static size_t write_data(void *data, size_t size, size_t nmemb, void *write_data){
+size_t write_data(void *data, size_t size, size_t nmemb, void *write_data){
     size_t realsize = size * nmemb;
     struct Memory *mem = (struct Memory *) write_data;
     char *ptr = realloc(mem->response, mem->size + realsize + 1);
@@ -30,6 +30,7 @@ static size_t write_data(void *data, size_t size, size_t nmemb, void *write_data
 
 int main(int argc, char** argv){
     char url[128] = DEFAULT_URL;
+    char error_message[CURL_ERROR_SIZE];
     if(argc > 1){
 	strcpy(url, argv[1]);
     } 
@@ -37,12 +38,14 @@ int main(int argc, char** argv){
     CURL* curl_handle = curl_easy_init();
     if(curl_handle){
 	struct Memory chunck = {0};
+	curl_easy_setopt(curl_handle, CURLOPT_HEADER, 1);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunck);
+	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, error_message);
 	curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 	CURLcode response = curl_easy_perform(curl_handle);
 	if(response != CURLE_OK){
-	    fprintf(stderr, "There was an error while doing the request.\nError->%s.\n", curl_easy_strerror(response));
+	    fprintf(stderr, "There was an error while doing the request.\n%s.\n", error_message);
 	}else{
 	    printf("%s\n--->Response\n", chunck.response);
 	}
